@@ -31,10 +31,19 @@ class ImportController extends \yii\console\Controller{
             $this->stdout("Указанный файл отсутствует \n", Console::BOLD);
         }
         
-        $i = 1;
+        $i = 1; //счётчик
         
-        if (($handle = fopen($this->pathToFile, 'r')) !== false) {
+        if (($handle = fopen($this->pathToFile, 'r+')) !== false) {
 
+            // Узнаю текущую кодировку
+            $charset = mb_detect_encoding(file_get_contents($this->pathToFile), array('utf-8', 'cp1251', 'windows-1251', 'ISO-8859-15'));
+            
+            // Перезаписываю в UTF-8
+            fwrite($handle, $this->file_get_contents_utf8($charset));
+
+            
+            $handle = fopen($this->pathToFile, 'r');
+            
             while (($row = fgetcsv($handle, 1000, $this->delimiter)) !== false) {
                 $model = new Store();
                 
@@ -44,11 +53,6 @@ class ImportController extends \yii\console\Controller{
                       ->set('address', $row[3])
                       ->set('userId', $row[4]);
                 
-//                $model->regionId = $row[0];
-//                $model->title = $row[1];
-//                $model->city = $row[2];
-//                $model->address = $row[3];
-//                $model->userId = $row[4];
                 
                 if ($model->validate()) {
                     $model->save();
@@ -64,4 +68,17 @@ class ImportController extends \yii\console\Controller{
         $this->stdout("Окончание работы скрипта \n", Console::BOLD);
     }
     
+
+    /**
+     * Изменение кодировки на UTF-8
+     * 
+     * @param type $charset Текущая кодировка
+     * @return type
+     */
+    public function file_get_contents_utf8($charset){
+        if($charset == 'ISO-8859-15'){
+            return mb_convert_encoding(file_get_contents($this->pathToFile), 'UTF-8', 'windows-1251');
+        }
+    }
+
 }
